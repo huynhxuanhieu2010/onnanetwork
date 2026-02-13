@@ -102,26 +102,30 @@
         }
 
         .news-item {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            padding: 0.5rem;
-            display: none; /* Mặc định ẩn */
-        }
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			padding: 0.5rem;
+			opacity: 0;
+			visibility: hidden; /* Ẩn hẳn để không đè lên nhau */
+			display: flex;
+			flex-direction: column;
+			transition: visibility 0.8s;
+		}
 
         .news-item.active {
-            display: flex;
-            flex-direction: column;
-            animation: slideInRight 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
+			opacity: 1;
+			visibility: visible;
+			animation: slideInRight 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+		}
 
         .news-item.exit {
-            display: flex;
-            flex-direction: column;
-            animation: slideOutRight 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
+			opacity: 1;
+			visibility: visible;
+			animation: slideOutRight 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+		}
         
         .source-tag {
             font-size: 8px;
@@ -155,18 +159,16 @@
         }
 
         .news-description {
-            font-size: 0.85rem;
-            color: rgba(255,255,255,0.6);
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 5; /* Cố định hiển thị 5 dòng */
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            flex-grow: 1;
-            /* Tính toán độ cao: line-height (1.6) * font-size (0.85rem) * số dòng (5) */
-            min-height: 6.8rem; 
-        }
+			font-size: 0.85rem;
+			color: rgba(255,255,255,0.6);
+			line-height: 1.5;
+			margin-bottom: 1rem;
+			display: -webkit-box;
+			-webkit-line-clamp: 4; /* Giảm xuống 4 dòng để an toàn cho các màn hình nhỏ */
+			-webkit-box-orient: vertical;
+			overflow: hidden;
+			flex-shrink: 0; /* Không cho phép co giãn lung tung */
+		}
 
         .news-footer {
             margin-top: auto; /* Đưa footer xuống dưới cùng */
@@ -356,27 +358,31 @@
             });
         }
 
-        function nextSlide() {
-            if (newsItems.length === 0) return;
+		function nextSlide() {
+			if (newsItems.length === 0) return;
 
-            const prevIndex = currentSlide;
-            currentSlide = (currentSlide + 1) % newsItems.length;
+			const prevIndex = currentSlide;
+			currentSlide = (currentSlide + 1) % newsItems.length;
 
-            const prevEl = document.getElementById(`slide-${prevIndex}`);
-            const nextEl = document.getElementById(`slide-${currentSlide}`);
+			const prevEl = document.getElementById(`slide-${prevIndex}`);
+			const nextEl = document.getElementById(`slide-${currentSlide}`);
 
-            if (prevEl) {
-                prevEl.classList.remove('active');
-                prevEl.classList.add('exit');
-                setTimeout(() => {
-                    prevEl.classList.remove('exit');
-                }, 800);
-            }
+			if (prevEl) {
+				prevEl.classList.remove('active');
+				prevEl.classList.add('exit');
+        
+				// Sau khi hiệu ứng chạy xong thì dọn dẹp class exit
+				setTimeout(() => {
+					prevEl.classList.remove('exit');
+				}, 800); 
+			}
 
-            if (nextEl) {
-                nextEl.classList.add('active');
-            }
-        }
+			if (nextEl) {
+				// Đảm bảo item tiếp theo sạch sẽ trước khi hiện
+				nextEl.classList.remove('exit');
+				nextEl.classList.add('active');
+			}
+		}
 
         function startSlideshow() {
             if (window.slideInterval) clearInterval(window.slideInterval);
