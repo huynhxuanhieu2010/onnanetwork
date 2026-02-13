@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ONi2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #000000;
+            color: white;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+        }
+        .glass-panel {
+            background: rgba(18, 18, 18, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #3498eb; /* Viền trái màu xanh dương */
+            border-radius: 1rem;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0.75rem;
+        }
+        
+        #weather-container {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+            width: 100%;
+        }
+        #weather-display {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+        .weather-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            height: 85px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Container cho RSS Slideshow */
+        #rss-feed {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Hiệu ứng trượt sang phải khi xuất hiện */
+        @keyframes slideInRight {
+            0% {
+                opacity: 0;
+                transform: translateX(-100%);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Hiệu ứng trượt sang phải khi biến mất */
+        @keyframes slideOutRight {
+            0% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
+        .news-item {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 0.5rem;
+            display: none; /* Mặc định ẩn */
+        }
+
+        .news-item.active {
+            display: flex;
+            flex-direction: column;
+            animation: slideInRight 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .news-item.exit {
+            display: flex;
+            flex-direction: column;
+            animation: slideOutRight 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        .source-tag {
+            font-size: 8px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Hình ảnh theo tỷ lệ 16:9 */
+        .news-image-wrapper {
+            width: 100%;
+            position: relative;
+            padding-top: 56.25%; /* Tỷ lệ 16:9 */
+            margin-bottom: 1rem;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            background-color: #0a0a0a;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+        }
+
+        .news-image-full {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .news-description {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 5; /* Cố định hiển thị 5 dòng */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-grow: 1;
+            /* Tính toán độ cao: line-height (1.6) * font-size (0.85rem) * số dòng (5) */
+            min-height: 6.8rem; 
+        }
+
+        .news-footer {
+            margin-top: auto; /* Đưa footer xuống dưới cùng */
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-5 gap-4 md:gap-5 pb-5">
+
+    <main class="flex-1 flex gap-4 md:gap-5 overflow-hidden">
+        
+        <!-- CỘT TRÁI: Video & Thời tiết -->
+        <div class="w-2/3 flex flex-col gap-4 md:gap-5 overflow-hidden">
+            <div class="glass-panel p-3 md:p-4 flex flex-col shrink-0">
+                <div class="video-container">
+                    <iframe src="https://www.youtube.com/embed/MWXcR01T9UU?si=Q_zglK7_Px9smX_e?autoplay=1&loop=1" frameborder="0" allowfullscreen></iframe>
+                </div>
+            </div>
+
+            <div class="glass-panel flex-1 p-4 md:p-5 overflow-hidden flex flex-col">
+                <div class="flex justify-between items-center mb-4 shrink-0">
+                    <h2 class="text-lg font-medium flex items-center gap-3 text-white/90">
+                        <i class="fas fa-temperature-high text-white/40"></i> 
+                        Thời tiết hôm nay
+                    </h2>
+                </div>
+                
+                <div id="weather-container">
+                    <div id="weather-display"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: Logo, Giờ & Tin tức -->
+        <div class="w-1/3 flex flex-col gap-4 md:gap-5 overflow-hidden">
+            <div class="glass-panel p-4 md:p-5 shrink-0">
+                <div class="flex items-center justify-between gap-4 w-full">
+                    <div class="flex items-center">
+                        <img src="https://huynhxuanhieu2010.github.io/hieuott/image/tvchannel/logo/ONNA_Network/ONi2.png" alt="Logo" width="75">
+                    </div>
+                    <div class="text-right flex flex-col justify-center">
+                        <div id="clock" class="text-3xl md:text-4xl font-mono font-light text-white tracking-tighter leading-none">00:00:00</div>
+                        <div id="date" class="text-[10px] md:text-[11px] text-white/40 mt-2 font-medium uppercase tracking-widest">Đang tải...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel flex-1 p-4 md:p-5 flex flex-col overflow-hidden">
+                <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-3 shrink-0">
+                    <h2 class="text-lg font-medium flex items-center gap-3 text-white/90">
+                        <i class="fas fa-play-circle text-white/40"></i> 
+                        Tin tức hôm nay
+                    </h2>
+                </div>
+                
+                <div id="rss-feed">
+                    <div class="flex h-full items-center justify-center text-white/20 text-sm italic">
+                        Đang tải dữ liệu...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // 1. Đồng hồ
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('vi-VN', { hour12: false });
+            const dateStr = now.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+            document.getElementById('clock').textContent = timeStr;
+            document.getElementById('date').textContent = dateStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // 2. Thời tiết
+        const provinces = ["An Giang", "Bắc Ninh", "Cà Mau", "Cần Thơ", "Cao Bằng", "Đà Nẵng", "Đắk Lắk", "Điện Biên", "Đồng Nai", "Đồng Tháp", "Gia Lai", "Hà Nội", "Hà Tĩnh", "Hải Phòng", "Hưng Yên", "Khánh Hòa", "Lai Châu", "Lâm Đồng", "Lạng Sơn", "Lào Cai", "Nghệ An", "Ninh Bình", "Phú Thọ", "Quảng Ngãi", "Quảng Ninh", "Quảng Trị", "Sơn La", "Tây Ninh", "Thái Nguyên", "Thanh Hóa", "TP. Huế", "TP. HCM", "Tuyên Quang", "Vĩnh Long"];
+
+        function initWeather() {
+            const display = document.getElementById('weather-display');
+            if (!display) return;
+            display.innerHTML = '';
+            provinces.forEach(p => {
+                const temp = Math.floor(Math.random() * (34 - 22 + 1)) + 22;
+                const card = document.createElement('div');
+                card.className = 'weather-card text-center';
+                card.innerHTML = `<div class="text-[9px] text-white/40 font-bold uppercase mb-1 truncate w-full px-1">${p}</div><div class="text-lg font-bold text-white">${temp}°C</div>`;
+                display.appendChild(card);
+            });
+            let currentIndex = 0;
+            setInterval(() => {
+                const container = document.getElementById('weather-container');
+                if (!container) return;
+                currentIndex++;
+                if (currentIndex > Math.ceil(provinces.length / 5) - 3) currentIndex = 0;
+                display.style.transform = `translateY(-${currentIndex * 93}px)`;
+            }, 5000);
+        }
+        initWeather();
+
+        // 3. Slideshow RSS
+        const RSS_SOURCES = [
+            { name: 'VTV News', url: 'https://vtv.vn/rss/home.rss', color: 'bg-red-900/40 text-red-200' },
+			{ name: 'Tinh tế', url: 'https://feeds.feedburner.com/tinhte', color: 'bg-red-900/40 text-green-200' },
+			{ name: 'Tuổi trẻ', url: 'https://tuoitre.vn/rss/tin-moi-nhat.rss', color: 'bg-red-900/40 text-blue-200' }
+        ];
+
+        let newsItems = [];
+        let currentSlide = 0;
+
+        async function fetchAllRSS() {
+            const fetchPromises = RSS_SOURCES.map(async (source) => {
+                try {
+                    const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(source.url)}`;
+                    const response = await fetch(API_URL);
+                    const data = await response.json();
+                    if (data.status === 'ok') {
+                        return data.items.map(item => ({
+                            title: item.title,
+                            link: item.link,
+                            description: item.description.replace(/<[^>]*>?/gm, '').substring(0, 450), // Tăng giới hạn để đảm bảo đủ text cho 5 dòng
+                            thumbnail: item.thumbnail || (item.enclosure && item.enclosure.link) || '',
+                            sourceName: source.name,
+                            sourceColor: source.color,
+                            timestamp: new Date(item.pubDate).getTime()
+                        }));
+                    }
+                } catch (e) { console.error(e); }
+                return [];
+            });
+
+            const results = await Promise.all(fetchPromises);
+            newsItems = results.flat().sort((a, b) => b.timestamp - a.timestamp).slice(0, 20);
+
+            if (newsItems.length > 0) {
+                renderSlides();
+                startSlideshow();
+            }
+        }
+
+        function renderSlides() {
+            const feedContainer = document.getElementById('rss-feed');
+            feedContainer.innerHTML = '';
+            
+            newsItems.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `news-item ${index === 0 ? 'active' : ''}`;
+                div.id = `slide-${index}`;
+                div.onclick = () => window.open(item.link, '_blank');
+                
+                const thumbImg = item.thumbnail ? 
+                    `<img src="${item.thumbnail}" class="news-image-full" alt="News Image">` : 
+                    `<div class="news-image-full flex items-center justify-center bg-white/5"><i class="fas fa-camera text-white/5 text-4xl"></i></div>`;
+
+                div.innerHTML = `
+                    <div class="news-image-wrapper">
+                        ${thumbImg}
+                    </div>
+                    <h3 class="text-base font-bold text-white mb-2 leading-tight hover:text-blue-400 transition-colors">
+                        ${item.title}
+                    </h3>
+                    <p class="news-description">
+                        ${item.description}
+                    </p>
+                    <div class="news-footer">
+                        <span class="source-tag ${item.sourceColor}">${item.sourceName}</span>
+                        <span class="text-xs text-white/30 font-mono">
+                            <i class="far fa-clock mr-1"></i> ${new Date(item.timestamp).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                    </div>
+                `;
+                feedContainer.appendChild(div);
+            });
+        }
+
+        function nextSlide() {
+            if (newsItems.length === 0) return;
+
+            const prevIndex = currentSlide;
+            currentSlide = (currentSlide + 1) % newsItems.length;
+
+            const prevEl = document.getElementById(`slide-${prevIndex}`);
+            const nextEl = document.getElementById(`slide-${currentSlide}`);
+
+            if (prevEl) {
+                prevEl.classList.remove('active');
+                prevEl.classList.add('exit');
+                setTimeout(() => {
+                    prevEl.classList.remove('exit');
+                }, 800);
+            }
+
+            if (nextEl) {
+                nextEl.classList.add('active');
+            }
+        }
+
+        function startSlideshow() {
+            if (window.slideInterval) clearInterval(window.slideInterval);
+            window.slideInterval = setInterval(nextSlide, 7000);
+        }
+
+        fetchAllRSS();
+        setInterval(fetchAllRSS, 600000);
+    </script>
+</body>
+</html>
