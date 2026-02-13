@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tổng khống chế - Trung tâm ONNA Network</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden; 
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* Tỉ lệ 16:9 */
+            background-color: #111;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #222;
+            border-bottom: none;
+        }
+        .info-strip {
+            background: #18181b;
+            border: 1px solid #222;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+            padding: 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 48px;
+        }
+        .video-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        iframe, video {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: black;
+        }
+        .status-bar {
+            background: #111;
+            border-bottom: 1px solid #222;
+        }
+        .action-panel {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 6px;
+            padding: 4px;
+            display: flex;
+            gap: 4px;
+        }
+        .btn-icon-square {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            background: #27272a;
+            color: #a1a1aa;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .btn-icon-square:hover {
+            background: #3f3f46;
+            color: #ffffff;
+        }
+        /* Cố định khung logo để không bị biến dạng hoặc tràn hình */
+        .channel-logo-container {
+            width: 34px;
+            height: 34px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #27272a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .channel-logo {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Giữ logo luôn nằm gọn trong khung */
+            display: block;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <nav class="status-bar px-6 py-1 z-50">
+        <div class="flex justify-between items-center w-full">
+			<div class="flex items-center gap-4">
+				<img src="https://i.postimg.cc/L8JcfVLQ/ONNA-Network.png" width="155">
+				<div class="h-4 w-[1px] bg-zinc-800"></div>
+			</div>
+			
+			<div class="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
+				<span id="current-date" class="text-[11px] text-blue-400 font-bold uppercase tracking-[0.2em] leading-none mb-1 hidden md:block">01/01/2026</span>
+				<span id="digital-clock" class="text-[20px] text-white leading-none font-bold uppercase tracking-[0.1em] leading-none mb-1 hidden md:block">00:00:00</span>
+			</div>
+            
+            <div class="action-panel">
+                <div class="btn-icon-square" title="Tải lại tất cả" onclick="refreshAllChannels()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </div>
+                <div class="btn-icon-square" title="Toàn màn hình" onclick="toggleFullScreen()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l-7 7m0 0h5m-5 0v-5m11-2l7-7m0 0h-5m5 0v5"></path></svg>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="p-4 flex-grow overflow-hidden flex items-center justify-center">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6 w-full max-w-[1920px]" id="viewer-grid">
+            <!-- Grid generated by JS -->
+        </div>
+    </main>
+
+    <script>
+        // ==========================================
+        // CẤU HÌNH KÊNH TẠI ĐÂY
+        // ==========================================
+        const channelConfig = [
+            { 
+                name: "ONi1 HD", 
+                subText: "Trung tâm ONNA Network tỉnh Ninh Bình.",
+                logo: "https://huynhxuanhieu2010.github.io/hieuott/image/tvchannel/logo/ONNA_Network/ONi1.png",
+                url: "https://onnanetwork.xyz/160.22.122.248:9001/oni/index.m3u8" 
+            },
+            { 
+                name: "ONi2 HD", 
+                subText: "Trung tâm ONNA Network tỉnh Ninh Bình.",
+                logo: "https://huynhxuanhieu2010.github.io/hieuott/image/tvchannel/logo/ONNA_Network/ONi2.png",
+                url: "https://onnanetwork.xyz/https://kubolive.ddns.net:8081/hls_nonkey/oni2hd/index.m3u8" 
+            },
+            { 
+                name: "ONi2 SD", 
+                subText: "Trung tâm ONNA Network tỉnh Ninh Bình.",
+                logo: "https://huynhxuanhieu2010.github.io/hieuott/image/tvchannel/logo/ONNA_Network/ONi2.png",
+                url: "https://onnanetwork.xyz/https://kubolive.ddns.net:8081/hls_nonkey/oni2sd/index.m3u8" 
+            },
+            { 
+                name: "ONi3", 
+                subText: "Trung tâm ONNA Network tỉnh An Giang.",
+                logo: "https://huynhxuanhieu2010.github.io/hieuott/image/tvchannel/logo/ONNA_Network/ONi3.png",
+                url: "https://onnanetwork.xyz/https://kubolive.ddns.net:8081/hls_nonkey/oni3/index.m3u8" 
+            },
+            { 
+                name: "ONi4 HD", 
+                subText: "Trung tâm ONNA Network TP Hà Nội và TP Huế.",
+                logo: "https://huynhxuanhieu2010.github.io/hieuott/image/tvchannel/logo/ONNA_Network/ONi4.png",
+                url: "https://onnanetwork.xyz/https://kubolive.ddns.net:8081/hls_nonkey/oni4/index.m3u8" 
+            },
+            { 
+                name: "ONi5 HD", 
+                subText: "Trung tâm ONNA Network tỉnh Phú Thọ.",
+                logo: "https://huynhxuanhieu2010.github.io/hieuott/image/tvchannel/logo/ONNA_Network/ONi5.png",
+                url: "https://onnanetwork.xyz/https://kubolive.ddns.net:8081/hls_nonkey/oni5/index.m3u8" 
+            }
+        ];
+
+        const hlsInstances = {};
+
+        function setStatus(id, type) {
+            const dot = document.getElementById(`status-dot-${id}`);
+            const label = document.getElementById(`label-${id}`);
+            if(!dot || !label) return;
+            
+            switch(type) {
+                case 'good':
+                    dot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]";
+                    label.className = "text-[11px] font-medium text-green-500";
+                    label.textContent = "Tín hiệu tốt";
+                    break;
+                case 'weak':
+                    dot.className = "w-2 h-2 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]";
+                    label.className = "text-[11px] font-medium text-yellow-500";
+                    label.textContent = "Tín hiệu kém";
+                    break;
+                case 'lost':
+                default:
+                    dot.className = "w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]";
+                    label.className = "text-[11px] font-medium text-red-500";
+                    label.textContent = "Mất tín hiệu";
+                    break;
+            }
+        }
+
+		function loadSource(id, url) {
+			const content = document.getElementById(`content-${id}`);
+    
+			if (hlsInstances[id]) {
+				hlsInstances[id].destroy();
+				delete hlsInstances[id];
+			}
+
+			// Trường hợp URL trống
+			if (!url || url.trim() === "") {
+				showNoSignalUI(content, id);
+				return;
+			}
+
+			// Xử lý YouTube
+			if (url.includes('youtube.com/') || url.includes('youtu.be/')) {
+				let videoId = '';
+				if (url.includes('v=')) videoId = url.split('v=')[1].split('&')[0];
+				else videoId = url.split('/').pop().split('?')[0];
+        
+				const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
+				content.innerHTML = `<iframe src="${embedUrl}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+				setStatus(id, 'good');
+				return;
+			}
+
+			// Xử lý Video/HLS
+			content.innerHTML = `<video id="video-${id}" controls autoplay muted playsinline class="w-full h-full object-contain"></video>`;
+			const video = document.getElementById(`video-${id}`);
+
+			// Sự kiện lỗi mặc định của thẻ video
+			video.onerror = () => setStatus(id, 'lost');
+
+			if (url.includes('.m3u8')) {
+			if (Hls.isSupported()) {
+				const hls = new Hls({
+					manifestLoadingMaxRetry: 2, // Thử lại 2 lần nếu lỗi
+					levelLoadingMaxRetry: 2
+				});
+				hls.loadSource(url);
+				hls.attachMedia(video);
+				hlsInstances[id] = hls;
+
+				hls.on(Hls.Events.MANIFEST_PARSED, () => setStatus(id, 'good'));
+
+				// Xử lý lỗi HLS chi tiết
+				hls.on(Hls.Events.ERROR, (event, data) => {
+					if (data.fatal) {
+						console.error(`Lỗi luồng ${id}:`, data.type);
+						setStatus(id, 'lost');
+						showNoSignalUI(content, id); // Hiển thị chữ Mất tín hiệu giữa màn hình
+						hls.destroy();
+					} else {
+						setStatus(id, 'weak');
+					}
+				});
+				} else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+					video.src = url;
+					video.onloadedmetadata = () => setStatus(id, 'good');
+					video.onerror = () => setStatus(id, 'lost');
+				}
+			} else {
+				video.src = url;
+				video.onplaying = () => setStatus(id, 'good');
+				video.onwaiting = () => setStatus(id, 'weak');
+				video.onerror = () => setStatus(id, 'lost');
+			}
+		}
+
+        function initGrid() {
+            const grid = document.getElementById('viewer-grid');
+            grid.innerHTML = '';
+            channelConfig.forEach((ch, index) => {
+                const id = index + 1;
+                grid.innerHTML += `
+                    <div class="flex flex-col" id="channel-${id}">
+                        <div class="video-container">
+                            <div class="video-content" id="content-${id}"></div>
+                        </div>
+                        <div class="info-strip">
+                            <!-- Left: Logo & Name/Desc -->
+                            <div class="flex items-center gap-3">
+                                <div class="channel-logo-container">
+                                    <img src="${ch.logo}" alt="Logo" class="channel-logo" onerror="this.src='https://via.placeholder.com/32/27272a/666666?text=?'">
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[13px] font-bold text-zinc-100 leading-tight">${ch.name}</span>
+                                    <span class="text-[10px] text-zinc-500 leading-tight">${ch.subText}</span>
+                                </div>
+                            </div>
+                            <!-- Right: Status -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-medium" id="label-${id}">...</span>
+                                <span class="w-2 h-2 rounded-full bg-zinc-800 shadow-sm" id="status-dot-${id}"></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            channelConfig.forEach((ch, index) => {
+                loadSource(index + 1, ch.url);
+            });
+        }
+
+        function refreshAllChannels() {
+            channelConfig.forEach((ch, index) => {
+                loadSource(index + 1, ch.url);
+            });
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else if (document.exitFullscreen) document.exitFullscreen();
+        }
+
+        window.onload = initGrid;
+    </script>
+	<script>
+		function showNoSignalUI(container, id) {
+			container.innerHTML = `
+			<div class="flex flex-col items-center justify-center text-red-500 select-none">
+				<svg class="w-12 h-12 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-3.536 5 5 0 011.414-3.536m-1.414 3.536L4 21M8.464 8.464a4.978 4.978 0 00-1.414 3.536L4 15M3 3l18 18"></path>
+				</svg>
+				<p class="text-[13px] font-bold uppercase tracking-widest opacity-60">Mất tín hiệu</p>
+			</div>`;
+			setStatus(id, 'lost');
+		}
+	</script>
+	<!-- Mã Javascript cho thời gian -->
+	<script>
+		function updateClock() {
+			const now = new Date();
+    
+			// Định dạng giờ:phút:giây
+			const hours = String(now.getHours()).padStart(2, '0');
+			const minutes = String(now.getMinutes()).padStart(2, '0');
+			const seconds = String(now.getSeconds()).padStart(2, '0');
+			document.getElementById('digital-clock').textContent = `${hours}:${minutes}:${seconds}`;
+    
+			// Định dạng ngày/tháng/năm
+			const day = String(now.getDate()).padStart(2, '0');
+			const month = String(now.getMonth() + 1).padStart(2, '0');
+			const year = now.getFullYear();
+			document.getElementById('current-date').textContent = `${day}/${month}/${year}`;
+		}
+
+		// Chạy đồng hồ mỗi giây
+		setInterval(updateClock, 1000);
+		// Gọi ngay lập tức để tránh bị trễ 1 giây khi load trang
+		updateClock();
+	</script>
+</body>
+</html>
