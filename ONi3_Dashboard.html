@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - ONi3</title>
+    <title>Dashboard - ONi2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -99,26 +102,30 @@
         }
 
         .news-item {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            padding: 0.5rem;
-            display: none; /* Mặc định ẩn */
-        }
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			padding: 0.5rem;
+			opacity: 0;
+			visibility: hidden; /* Ẩn hẳn để không đè lên nhau */
+			display: flex;
+			flex-direction: column;
+			transition: visibility 0.8s;
+		}
 
         .news-item.active {
-            display: flex;
-            flex-direction: column;
-            animation: slideInRight 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
+			opacity: 1;
+			visibility: visible;
+			animation: slideInRight 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+		}
 
         .news-item.exit {
-            display: flex;
-            flex-direction: column;
-            animation: slideOutRight 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
+			opacity: 1;
+			visibility: visible;
+			animation: slideOutRight 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+		}
         
         .source-tag {
             font-size: 8px;
@@ -152,18 +159,16 @@
         }
 
         .news-description {
-            font-size: 0.85rem;
-            color: rgba(255,255,255,0.6);
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 5; /* Cố định hiển thị 5 dòng */
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            flex-grow: 1;
-            /* Tính toán độ cao: line-height (1.6) * font-size (0.85rem) * số dòng (5) */
-            min-height: 6.8rem; 
-        }
+			font-size: 0.85rem;
+			color: rgba(255,255,255,0.6);
+			line-height: 1.5;
+			margin-bottom: 1rem;
+			display: -webkit-box;
+			-webkit-line-clamp: 4; /* Giảm xuống 4 dòng để an toàn cho các màn hình nhỏ */
+			-webkit-box-orient: vertical;
+			overflow: hidden;
+			flex-shrink: 0; /* Không cho phép co giãn lung tung */
+		}
 
         .news-footer {
             margin-top: auto; /* Đưa footer xuống dưới cùng */
@@ -207,10 +212,10 @@
             <div class="glass-panel p-4 md:p-5 shrink-0">
                 <div class="flex items-center justify-between gap-4 w-full">
                     <div class="flex items-center">
-                        <img src="https://i.postimg.cc/MTqVtfWC/ONi3-2026.png" alt="Logo" width="100">
+                        <img src="https://huynhxuanhieu2010.github.io/hieuott/image/tvchannel/logo/ONNA_Network/ONi3.png" alt="Logo" width="75">
                     </div>
                     <div class="text-right flex flex-col justify-center">
-                        <div id="clock" class="text-3xl md:text-4xl font-mono font-light text-white tracking-tighter leading-none">00:00:00</div>
+                        <div id="clock" style="font-family: 'Plus Jakarta Sans', sans-serif;" class="text-3xl md:text-4xl font-medium text-white tracking-tighter leading-none">00:00:00</div>
                         <div id="date" class="text-[10px] md:text-[11px] text-white/40 mt-2 font-medium uppercase tracking-widest">Đang tải...</div>
                     </div>
                 </div>
@@ -237,12 +242,19 @@
     <script>
         // 1. Đồng hồ
         function updateClock() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('vi-VN', { hour12: false });
-            const dateStr = now.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-            document.getElementById('clock').textContent = timeStr;
-            document.getElementById('date').textContent = dateStr;
-        }
+			const now = new Date();
+			const options = { hour12: false, timeZone: 'Asia/Ho_Chi_Minh' };
+			const timeStr = now.toLocaleTimeString('vi-VN', options);
+			const dateStr = now.toLocaleDateString('vi-VN', { 
+				weekday: 'long', 
+				day: '2-digit', 
+				month: '2-digit', 
+				year: 'numeric',
+				timeZone: 'Asia/Ho_Chi_Minh' 
+			});
+			document.getElementById('clock').textContent = timeStr;
+			document.getElementById('date').textContent = dateStr;
+		}
         setInterval(updateClock, 1000);
         updateClock();
 
@@ -346,27 +358,31 @@
             });
         }
 
-        function nextSlide() {
-            if (newsItems.length === 0) return;
+		function nextSlide() {
+			if (newsItems.length === 0) return;
 
-            const prevIndex = currentSlide;
-            currentSlide = (currentSlide + 1) % newsItems.length;
+			const prevIndex = currentSlide;
+			currentSlide = (currentSlide + 1) % newsItems.length;
 
-            const prevEl = document.getElementById(`slide-${prevIndex}`);
-            const nextEl = document.getElementById(`slide-${currentSlide}`);
+			const prevEl = document.getElementById(`slide-${prevIndex}`);
+			const nextEl = document.getElementById(`slide-${currentSlide}`);
 
-            if (prevEl) {
-                prevEl.classList.remove('active');
-                prevEl.classList.add('exit');
-                setTimeout(() => {
-                    prevEl.classList.remove('exit');
-                }, 800);
-            }
+			if (prevEl) {
+				prevEl.classList.remove('active');
+				prevEl.classList.add('exit');
+        
+				// Sau khi hiệu ứng chạy xong thì dọn dẹp class exit
+				setTimeout(() => {
+					prevEl.classList.remove('exit');
+				}, 800); 
+			}
 
-            if (nextEl) {
-                nextEl.classList.add('active');
-            }
-        }
+			if (nextEl) {
+				// Đảm bảo item tiếp theo sạch sẽ trước khi hiện
+				nextEl.classList.remove('exit');
+				nextEl.classList.add('active');
+			}
+		}
 
         function startSlideshow() {
             if (window.slideInterval) clearInterval(window.slideInterval);
